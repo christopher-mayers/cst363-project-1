@@ -10,7 +10,6 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import com.google.common.collect.Lists;
 
-import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.BeforeAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,30 +26,10 @@ import disk_store.Schema;
 class HeapDBTest {
 	
 	static Random rand;
-	static String dbFilename = "E:/Glenn/CSUMB/fall18/DB/temp3.txt";
-	static Schema schema;
-	
-	@BeforeAll
-	static void beforeAll() {
-		// create a schema with three integer fields, named 'a', 'b', 'c',
-		// with 'a' the key
-		schema = new Schema("a", IntType.getInstance());
-		schema.add("b", IntType.getInstance());
-		schema.add("c", IntType.getInstance());
-	}
-	
-	@BeforeEach
-	void init() {
-		fixOpenFile();
-	}
-	
-	@AfterEach
-	void wrapup() {
-		// wrapup
-	}
 	
 	static void fixOpenFile() {
 		// delete file if possible
+		String dbFilename = "C:\\Users\\Chef\\eclipse-workspace\\project\\src\\test\\this.txt";
 		File file = new File(dbFilename);
 		file.delete();
 	}
@@ -66,6 +45,12 @@ class HeapDBTest {
 	
 	// return a new record with the given field values
 	static Record createTestRecord(int a, int b, int c) {
+		// create a schema with three integer fields, named 'a', 'b', 'c',
+		// with 'a' the key
+		Schema schema = new Schema("a", IntType.getInstance());
+		schema.add("b", IntType.getInstance());
+		schema.add("c", IntType.getInstance());
+
 		IntField aval = new IntField(a);
 		IntField bval = new IntField(b);
 		IntField cval = new IntField(c);
@@ -77,13 +62,16 @@ class HeapDBTest {
 	void testHeapOps() {
 		// test insert, delete, and lookup operations
 		
-		HeapDB db = new HeapDB(dbFilename, schema);
-
-		// test insert
+		fixOpenFile();
+		String dbFilename = "C:\\Users\\Chef\\eclipse-workspace\\project\\src\\test\\this.txt";
+		
 		Record rec1 = createTestRecord(1,2,3);
 		Record rec2 = createTestRecord(2,3,4);
 		Record rec3 = createTestRecord(3,4,5);
 		Record rec4 = createTestRecord(4,5,6);
+		HeapDB db = new HeapDB(dbFilename, rec1.getSchema());
+
+		// test insert
 		db.insert(rec1);
 		db.insert(rec2);
 		db.insert(rec3);
@@ -106,9 +94,12 @@ class HeapDBTest {
 	@Test
 	void testLookupTime() {
 		// compare time to lookup records with/without an index
+		fixOpenFile();
+		String dbFilename = "C:\\Users\\Chef\\eclipse-workspace\\project\\src\\test\\this.txt";
 		
 		// create a new DB; use index to speed inserts
-		HeapDB db = new HeapDB(dbFilename, schema);
+		Record rec = createTestRecord(0,1,2);
+		HeapDB db = new HeapDB(dbFilename, rec.getSchema());
 		db.createOrderedIndex();
 
 		rand = new Random(42);  // set seed for repeatability
@@ -124,7 +115,6 @@ class HeapDBTest {
 		long startTime, endTime, noIndexTime, indexTime;
 
 		// lookup without index
-		Record rec;
 		db.deleteIndex();
 		startTime = System.nanoTime();
 		for (int i = 0; i < numLookups; i++) {
@@ -150,14 +140,17 @@ class HeapDBTest {
 	@Test
 	void testPrint() {
 		// test the print method
-
-		// create a small DB
-		HeapDB db = new HeapDB(dbFilename, schema);
+		
+		fixOpenFile();
 
 		Record rec1 = createTestRecord(1,2,3);
 		Record rec2 = createTestRecord(2,3,4);
 		Record rec3 = createTestRecord(3,4,5);
 		Record rec4 = createTestRecord(4,5,6);
+
+		// create a small DB
+		String dbFilename = "C:\\Users\\Chef\\eclipse-workspace\\project\\src\\test\\this.txt";
+		HeapDB db = new HeapDB(dbFilename, rec1.getSchema());
 		db.insert(rec1);
 		db.insert(rec2);
 		db.insert(rec3);
@@ -173,12 +166,15 @@ class HeapDBTest {
 	void testLookupNonkey() {
 		// test lookup operations on non-key fields
 		
-		int numRecords = 2000;
-
+		fixOpenFile();
+		String dbFilename = "C:\\Users\\Chef\\eclipse-workspace\\project\\src\\test\\this.txt";
+		
 		// create a new DB; use index on primary key to speed inserts
-		HeapDB db = new HeapDB(dbFilename, schema);
-		db.createOrderedIndex();
 		rand = new Random(42);  // set seed for repeatability
+		Record rec = createTestRecord(0,1,2);
+		HeapDB db = new HeapDB(dbFilename, rec.getSchema());
+		db.createOrderedIndex();
+		int numRecords = 2000;
 		insertRecords(db, numRecords);
 		
 		// lookup records with field c value of 3
@@ -191,41 +187,6 @@ class HeapDBTest {
 		// try lookups again, with the index
 		recs = db.lookup("c", 3);
 		assertTrue(recs.size() == 102);
-		
-		db.close();
-	}
-	
-	@Test
-	void testIndexDeleteMaintenance() {
-		// test to make sure index maintenance works
-		// after delete operations on search keys that are
-		// not the primary key
-		
-		int numRecords = 500;
-
-		// create a new DB; use index on primary key to speed inserts
-		HeapDB db = new HeapDB(dbFilename, schema);
-		db.createOrderedIndex();
-		rand = new Random(42);  // set seed for repeatability
-		insertRecords(db, numRecords);
-		
-		// create index on field c
-		db.createOrderedIndex("c");
-		
-		// delete a bunch of records
-		for (int i = 0; i < numRecords; i += 20) {
-		   db.delete(i);
-		}
-		
-		// lookup records with field c value of 3, using index
-		List<Record> recs = db.lookup("c", 3);
-		int m = recs.size();
-		
-		// try the lookup again, without the index
-		db.deleteIndex("c");
-		recs = db.lookup("c", 3);
-		assertTrue(recs.size() == m);
-		System.out.println("by indexed lookup: "+m+"; by sequential lookup: "+recs.size());
 		
 		db.close();
 	}
@@ -248,10 +209,12 @@ class HeapDBTest {
 		int numKeys = 20;
 		int numTests = 10000;
 		
-		rand = new Random(42);  // set seed for repeatability
-
 		// create a new DB
-		HeapDB db = new HeapDB(dbFilename, schema);
+		fixOpenFile();
+		String dbFilename = "C:\\Users\\Chef\\eclipse-workspace\\project\\src\\test\\this.txt";
+		rand = new Random(42);  // set seed for repeatability
+		Record rec = createTestRecord(0,1,2);
+		HeapDB db = new HeapDB(dbFilename, rec.getSchema());
 		
 		// optionally use an index on primary key
 		db.createOrderedIndex();
@@ -259,7 +222,6 @@ class HeapDBTest {
 		// initialize keyPresent: keyPresent[k] == 0 if key not present in DB
 		boolean[] keyPresent = new boolean[numKeys];	
 		
-		Record rec;
 		for (int i = 0; i < numTests; i++) {
 			int key = ThreadLocalRandom.current().nextInt(numKeys);
 			int op = randomOp(); 
