@@ -205,11 +205,20 @@ public class HeapDB implements DB, Iterable<Record>{
 					recMap.setBit(recNum, true);
 					bf.write(blockNum, buffer);
 					
-					//index.insert(rec.getKey(), blockNum);
-					
 					// index maintenance
 					// YOUR CODE HERE
-					
+
+					//done
+					for(int i = 0; i < schema.size(); i++){
+						if(indexes[i] != null){
+							indexes[i].insert(rec.getKey(),blockNum);
+						}
+					}
+
+					//search through indexes to find a null value
+					//	if indexes has non null entry:
+					//		add to index (value if search key from rec, blockNum)
+
 					return true;
 				}
 			}
@@ -252,6 +261,16 @@ public class HeapDB implements DB, Iterable<Record>{
 							
 							// index maintenance
 							// YOUR CODE HERE
+
+							for(int i = 0; i < schema.size(); i++){
+								if(indexes[i] != null){
+									List<Integer> blockNums = indexes[i].lookup(key);
+
+									for(Integer b:blockNums){
+										indexes[i].delete(key,b);
+									}
+								}
+							}
 
 							return true;
 						}
