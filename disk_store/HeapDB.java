@@ -205,6 +205,8 @@ public class HeapDB implements DB, Iterable<Record>{
 					recMap.setBit(recNum, true);
 					bf.write(blockNum, buffer);
 					
+					//index.insert(rec.getKey(), blockNum);
+					
 					// index maintenance
 					// YOUR CODE HERE
 					

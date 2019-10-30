@@ -1,6 +1,8 @@
 package disk_store;
 
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 import java.util.HashMap;
 import java.util.Set;
@@ -22,64 +24,171 @@ public class OrdIndex implements DBIndex {
 	 * Create an new ordered index.
 	 */
 	
-	private HashMap <Integer, List> index;
+	private List <List <Integer>> index; // Map to hold index numbers and associated block numbers
 	
 	public OrdIndex() {
 		
-		index = new HashMap <Integer, List>();
-		
-		//throw new UnsupportedOperationException();
+		index = new ArrayList <List <Integer>>(); // Initialize index as a map
+	
 	}
+	
+	int addSearch(List <List <Integer>> arr, int l, int r, int x) 
+    { 
+		int mid = l + (r - l) / 2;
+		
+        if (r >= l) 
+        { 
+
+            if (arr.get(mid).get(0) == x) 
+            {
+            	return mid; 
+        	}
+        
+            if (arr.get(mid).get(0) > x)
+            {
+            	return addSearch(arr, l, mid - 1, x); 
+            } 
+
+            return addSearch(arr, mid + 1, r, x); 
+        } 
+        return mid; 
+    } 
+	
+	int binarySearch(List <List <Integer>> arr, int l, int r, int x) 
+    { 
+		
+        if (r >= l) 
+        { 
+
+        	int mid = l + (r - l) / 2;
+        	
+            if (arr.get(mid).get(0) == x) 
+            {
+            	return mid; 
+        	}
+        
+            if (arr.get(mid).get(0) > x)
+            {
+            	return binarySearch(arr, l, mid - 1, x); 
+            } 
+
+            return binarySearch(arr, mid + 1, r, x); 
+        } 
+        return -1; 
+    } 
+	
+	int deleteSearch(List <Integer> arr, int l, int r, int x) 
+    { 
+		
+        if (r >= l) 
+        { 
+
+        	int mid = l + (r - l) / 2;
+        	
+            if (arr.get(mid) == x) 
+            {
+            	return mid; 
+        	}
+        
+            if (arr.get(mid) > x)
+            {
+            	return deleteSearch(arr, l, mid - 1, x); 
+            } 
+
+            return deleteSearch(arr, mid + 1, r, x); 
+        } 
+        return -1; 
+    } 
 	
 	@Override
 	public List<Integer> lookup(int key) {
-		//throw new UnsupportedOperationException();
+		int ind = binarySearch(index, 0, index.size()-1, key);
+		List HoldList = new ArrayList <Integer>();
 		
-		if (index.containsKey(key))
+		if (ind == -1)
 		{
-			Set <Integer> valueSet = new HashSet <Integer>();
-			ArrayList <Integer> hold = (ArrayList) index.get(key);
-			for (int h = 0; h < hold.size(); h++)
-			{
-				valueSet.add(hold.get(h));
-			}
-			ArrayList <Integer> returnList = new ArrayList<Integer>();
-			for (int v: valueSet)
-			{
-				returnList.add(v);
-			}
-			return returnList;
+			return HoldList;
 		}
-		else
+		
+		HoldList = index.get(ind).subList(1, index.get(ind).size());
+		
+		Set <Integer> blockSet = new HashSet <Integer>();
+		
+		for (int i = 0; i < HoldList.size(); i++)
 		{
-			return new ArrayList<Integer> ();
+			blockSet.add((Integer) HoldList.get(i));
 		}
+		
+		List HoldList2 = new ArrayList <Integer>();
+		
+		for (Integer b : blockSet)
+		{
+			HoldList2.add(b);
+		}
+		
+		return HoldList2;
 	}
 	
 	@Override
 	public void insert(int key, int blockNum) {
 		
-		Integer ikey = key;
-		Integer iblocknum = blockNum;
-		
-		if (index.get(ikey) == null)
+		if (index.size() > 0)
 		{
-			index.put(ikey, new ArrayList <Integer> ());
+			int ind = addSearch(index, 0, index.size()-1, key);
+			
+			if (ind > index.size()-1)
+			{
+				ArrayList holdList = new ArrayList <Integer>();
+				index.add(holdList);
+				index.get(ind).add(key);
+				index.get(ind).add(blockNum);
+			}
+			else
+			{
+				index.get(ind).add(blockNum);
+				Collections.sort(index.get(ind).subList(1, index.get(ind).size()));
+			}
 		}
-		
-		index.get(ikey).add(iblocknum);	
-		
-		System.out.println(index);
+		else if (index.size() == 1)
+		{
+			if (key < index.get(0).get(0))
+			{
+				ArrayList holdList = new ArrayList <Integer>();
+				index.add(0, holdList);
+				index.get(0).add(key);
+				index.get(0).add(blockNum);
+			}
+			else
+			{
+				ArrayList holdList = new ArrayList <Integer>();
+				index.add(holdList);
+				index.get(1).add(key);
+				index.get(1).add(blockNum);
+			}
+		}
+		else
+		{
+			ArrayList holdList = new ArrayList <Integer>();
+			index.add(0, holdList);
+			index.get(0).add(key);
+			index.get(0).add(blockNum);
+		}
 	}
 
 	@Override
 	public void delete(int key, int blockNum) {
-		if (index.get(key).contains(blockNum))
+		
+		int ind = binarySearch(index, 0, index.size()-1, key);
+		if (ind != -1)
 		{
-			int ind = index.get(key).indexOf(blockNum);
-			index.get(key).remove(ind);
+			List holdList =  index.get(ind).subList(1, index.get(ind).size());
+			int ind2 = deleteSearch(holdList, 0, holdList.size()-1, blockNum);
+			if (ind2 != -1)
+			{
+				
+				index.get(ind).remove(ind2+1);
+			}
 		}
-		System.out.println(index);
 	}
 	
 	/**
@@ -88,12 +197,11 @@ public class OrdIndex implements DBIndex {
 	 */
 	public int size() {
 		int size = 0;
-		for (int i : index.keySet())
+		
+		for (int i = 0; i < index.size(); i++)
 		{
-			int hold = index.get(i).size();
-			size += hold;
+			size += index.get(i).size()-1;
 		}
-		// you may find it useful to implement this
 		return size;
 	}
 	
