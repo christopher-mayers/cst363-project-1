@@ -170,7 +170,7 @@ public class OrdIndex implements DBIndex {
 	// Function to insert a key and block number within an index
 	@Override
 	public void insert(int key, int blockNum) {
-		
+		//System.out.println(index);
 		// If index is not empty
 		if (index.size() > 0)
 		{
@@ -194,7 +194,7 @@ public class OrdIndex implements DBIndex {
 				{
 					// Create new list and add to index at discovered location
 					ArrayList holdList = new ArrayList <Integer>();
-					index.add(holdList);
+					index.add(ind, holdList);
 					// Add key and block number to list at index at discovered location
 					index.get(ind).add(key);
 					index.get(ind).add(blockNum);
