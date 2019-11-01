@@ -1,12 +1,8 @@
 package disk_store;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Map;
-
-import com.google.common.collect.Lists;
 
 /**
  * A heap file implementation of the DB interface.
@@ -211,7 +207,8 @@ public class HeapDB implements DB, Iterable<Record>{
 					//done
 					for(int i = 0; i < schema.size(); i++){
 						if(indexes[i] != null){
-							indexes[i].insert(rec.getKey(),blockNum);
+							IntField f  = (IntField) rec.get(i);
+							indexes[i].insert(f.getValue(),blockNum);
 						}
 					}
 
@@ -317,8 +314,32 @@ public class HeapDB implements DB, Iterable<Record>{
 		//    ...
 		// }
 
-		// replace the following line with your return statement
-		throw new UnsupportedOperationException();
+		//find field num
+		// 	check if indexes[field] num type is equal to ordered Index
+		//*if orderedIndex is available: use that to return data.
+
+		DBIndex index = indexes[fieldNum];
+		if(index != null) {
+			List<Integer> blockNumbers = index.lookup(key);
+			for(Integer blockNum:blockNumbers){
+				List<Record> records = lookupInBlock(fieldNum,key,blockNum);
+				for(Record rec:records) {
+					result.add(rec);
+				}
+			}
+		}else{
+			for (Record rec : this) {
+				IntField f  = (IntField) rec.get(fieldNum);
+				if (key == f.getValue())
+				{
+					result.add(rec);
+				}
+			}
+		}
+
+		//if not: iterate through everything in indexes[field num] in a linear search and return all values
+
+		return result;
 	}
 	
 	// Perform a linear search in the block with the given blockNum
@@ -346,7 +367,7 @@ public class HeapDB implements DB, Iterable<Record>{
 		}
 		return result;
 	}
-	
+
 	/**
 	 * Create an ordered index for the given integer field.
 	 */
