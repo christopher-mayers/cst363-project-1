@@ -102,7 +102,7 @@ public class OrdIndex implements DBIndex {
 	 * Binary search designed to find block number located within
 	 * sub-array. Doesn't search through full index, but a given
 	 * sub-array with block number values within.
-	 * */
+	 */
 	int deleteSearch(List <Integer> arr, int l, int r, int x) 
     { 
 		

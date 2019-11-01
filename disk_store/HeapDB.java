@@ -402,12 +402,26 @@ public class HeapDB implements DB, Iterable<Record>{
 		if (index == null) {
 			throw new IllegalArgumentException("index is null");
 		}
-		
-		// YOUR CODE HERE
-		// for each record in the DB, you will need to insert its
-		// search key value and the block number
 
-		throw new UnsupportedOperationException();
+		// search blocks sequentially for the key
+		bf.read(bitmapBlock, blockmapBuffer);      // read the bitmap block
+		for (int blockNum = bitmapBlock+1; blockNum < blockMap.size(); blockNum++) {
+			if (blockMap.getBit(blockNum)) {
+				bf.read(blockNum, buffer);
+				for (int recNum = 0; recNum < recMap.size(); recNum++) {
+					if (recMap.getBit(recNum)) {
+						Record rec = schema.blankRecord();
+						int loc = recordLocation(recNum);
+						rec.deserialize(buffer.buffer, loc);
+						IntField f = (IntField) rec.get(fieldNum);
+						int key = f.getValue();
+						index.insert(key, blockNum);
+					}
+				}
+			}
+		}
+
+		//throw new UnsupportedOperationException();
 	}
 	
 	/**
